@@ -2,22 +2,38 @@
 
 import {useCallback, useEffect, useState} from 'react';
 
-function getOrCreateCustomerId(storageKey: string): string {
-  const existing = window.localStorage.getItem(storageKey);
-  if (existing) return existing;
-
-  const fresh = `bank-auth-demo-${crypto.randomUUID()}`;
-  window.localStorage.setItem(storageKey, fresh);
-  return fresh;
+function generateCustomerId(): string {
+  return `bank-auth-demo-${crypto.randomUUID()}`;
 }
 
 /**
- * Owns the "who is this demo user" identity for one of the flows, plus the
- * Coinflow session key scoped to them. Each flow gets its own storage
- * namespace so testing one doesn't clobber another's linked bank account.
+ * A brand-new identity on every load, EXCEPT when returning from the mobile
+ * bank-auth redirect — that trip carries `?customerId=` forward in the URL
+ * so you don't land back as a stranger to the account you just linked.
+ * Consumes (and strips) that param if present.
  */
-export function useDemoSession(namespace: 'link') {
-  const storageKey = `bank-auth-demo:${namespace}:customerId`;
+function resolveInitialCustomerId(): string {
+  const params = new URLSearchParams(window.location.search);
+  const continuationId = params.get('customerId');
+  if (!continuationId) return generateCustomerId();
+
+  params.delete('customerId');
+  const query = params.toString();
+  window.history.replaceState(
+    null,
+    '',
+    window.location.pathname + (query ? `?${query}` : '')
+  );
+  return continuationId;
+}
+
+/**
+ * Owns the "who is this demo user" identity, plus the Coinflow session key
+ * scoped to them. Deliberately not persisted anywhere (no localStorage) —
+ * every page load is a fresh customer, and a plain refresh never brings the
+ * previous one back.
+ */
+export function useDemoSession() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [sessionKey, setSessionKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,22 +59,22 @@ export function useDemoSession(namespace: 'link') {
   }, []);
 
   useEffect(() => {
-    const id = getOrCreateCustomerId(storageKey);
-    // Mount-time sync from localStorage — not derivable from render, so the
-    // set-state-in-effect rule's usual "you might not need an effect" doesn't apply.
+    const id = resolveInitialCustomerId();
+    // Mount-time identity resolution (URL continuation or a fresh UUID) —
+    // not derivable from render, so the set-state-in-effect rule's usual
+    // "you might not need an effect" doesn't apply.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCustomerId(id);
     fetchSessionKey(id);
-    // Only run once on mount per namespace.
+    // Only run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
+  }, []);
 
   const resetCustomerId = useCallback(() => {
-    window.localStorage.removeItem(storageKey);
-    const id = getOrCreateCustomerId(storageKey);
+    const id = generateCustomerId();
     setCustomerId(id);
     fetchSessionKey(id);
-  }, [storageKey, fetchSessionKey]);
+  }, [fetchSessionKey]);
 
   return {
     customerId,

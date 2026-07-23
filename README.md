@@ -68,10 +68,13 @@ cp .env.example .env.local   # then fill in COINFLOW_SANDBOX_API_KEY
 npm run dev
 ```
 
-Open `http://localhost:3000` and pick a flow from the home page. Each flow
-generates its own test `customerId` (stored in `localStorage`) the first
-time you load it — use "reset test user" to start over with a fresh
-identity.
+Open `http://localhost:3000` and pick a flow from the home page. Every page
+load generates a brand-new test `customerId` — nothing is persisted to
+localStorage, so a plain refresh gets you a completely fresh identity with
+no linked accounts. The one exception is the mobile full-page redirect: the
+customerId rides along in the `bankAccountLinkRedirect` URL so returning
+from the bank's login doesn't land you as a stranger to the account you
+just linked. "reset test user" gets you a new identity without reloading.
 
 To actually link a bank account, sandbox uses Plaid's sandbox mode: pick any
 institution and log in with Plaid's test credentials (`user_good` /

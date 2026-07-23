@@ -11,7 +11,7 @@ import {PayoutForm} from '@/components/PayoutForm';
 
 export default function LinkPage() {
   const {customerId, sessionKey, loading, error, resetCustomerId} =
-    useDemoSession('link');
+    useDemoSession();
   const {accounts, loading: accountsLoading, refetch} =
     useWithdrawerAccounts(sessionKey);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
@@ -53,9 +53,11 @@ export default function LinkPage() {
   useAccountLinkedListener(handleLinked);
 
   const bankAuthUrl = useMemo(() => {
-    if (!sessionKey || isMobile === null) return null;
+    if (!sessionKey || !customerId || isMobile === null) return null;
+    // Mobile does a real full-page round trip, so the only way back to the
+    // same (unpersisted, never-stored) identity is to carry it in the URL.
     const bankAccountLinkRedirect = isMobile
-      ? `${window.location.origin}/link?linked=1`
+      ? `${window.location.origin}/link?linked=1&customerId=${encodeURIComponent(customerId)}`
       : `${window.location.origin}/bank-callback`;
     const params = new URLSearchParams({
       sessionKey,
@@ -64,7 +66,7 @@ export default function LinkPage() {
       ...(isMobile ? {} : {origins: JSON.stringify([window.location.origin])}),
     });
     return `https://sandbox.coinflow.cash/solana/withdraw/predictionmarketmoon?${params.toString()}`;
-  }, [sessionKey, isMobile]);
+  }, [sessionKey, customerId, isMobile]);
 
   return (
     <main className="page">
