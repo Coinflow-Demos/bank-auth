@@ -136,6 +136,10 @@ struct ContentView: View {
         defer { isBusy = false }
         do {
             accounts = try await client.fetchWithdrawer(sessionKey: sessionKey)
+            // Skip the extra tap when there's exactly one account to pick from.
+            if selectedToken == nil, let only = accounts?.bankAccounts, only.count == 1 {
+                selectedToken = only[0].token
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

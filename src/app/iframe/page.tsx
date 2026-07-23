@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import Link from 'next/link';
 import {useDemoSession} from '@/hooks/useDemoSession';
 import {useWithdrawerAccounts} from '@/hooks/useWithdrawerAccounts';
@@ -18,6 +18,23 @@ export default function IframeDemoPage() {
   } = useWithdrawerAccounts(sessionKey);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const [justLinked, setJustLinked] = useState(false);
+
+  // A fresh customerId (via "reset test user") means the previous selection
+  // and success banner no longer refer to anything real. Not derivable
+  // during render — it's resetting UI state in response to an identity
+  // change, so an effect (rather than a key-remount, which would also nuke
+  // the session-key fetch above) is the right tool here.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedToken(null);
+    setJustLinked(false);
+  }, [customerId]);
+
+  // Skip the extra click when there's exactly one account — computed at
+  // render time instead of an effect, so there's nothing to reset later.
+  const effectiveSelectedToken =
+    selectedToken ??
+    (accounts?.bankAccounts.length === 1 ? accounts.bankAccounts[0].token : null);
 
   const handleLinked = useCallback(() => {
     setJustLinked(true);
@@ -80,7 +97,7 @@ export default function IframeDemoPage() {
         {accounts && (
           <AccountList
             accounts={accounts.bankAccounts}
-            selectedToken={selectedToken}
+            selectedToken={effectiveSelectedToken}
             onSelect={setSelectedToken}
           />
         )}
@@ -92,7 +109,11 @@ export default function IframeDemoPage() {
       {customerId && (
         <section className="card">
           <h2>Delegated payout</h2>
-          <PayoutForm customerId={customerId} accountToken={selectedToken} />
+          <PayoutForm
+            key={customerId}
+            customerId={customerId}
+            accountToken={effectiveSelectedToken}
+          />
         </section>
       )}
     </main>

@@ -12,6 +12,9 @@ export function useWithdrawerAccounts(sessionKey: string | null) {
     if (!sessionKey) return;
     setLoading(true);
     setError(null);
+    setAccounts(null); // Clear the previous customer's accounts immediately —
+    // otherwise a stale list lingers on screen for whoever just got a new
+    // session key (e.g. after "reset test user").
     try {
       const response = await fetch('/api/withdrawer', {
         method: 'POST',

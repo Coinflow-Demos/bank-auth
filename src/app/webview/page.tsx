@@ -46,6 +46,22 @@ export default function WebviewDemoPage() {
   const [justLinked, setJustLinked] = useState(false);
   const [recognizedWebview, setRecognizedWebview] = useState(false);
 
+  // A fresh customerId (via "reset test user") means the previous selection
+  // no longer refers to anything real. Doesn't fire on the ?linked=1 return
+  // trip, since customerId is stable across that redirect. Not derivable
+  // during render — it's resetting UI state in response to an identity
+  // change.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedToken(null);
+  }, [customerId]);
+
+  // Skip the extra tap when there's exactly one account — computed at
+  // render time instead of an effect, so there's nothing to reset later.
+  const effectiveSelectedToken =
+    selectedToken ??
+    (accounts?.bankAccounts.length === 1 ? accounts.bankAccounts[0].token : null);
+
   useEffect(() => {
     // Reads window/location on mount — genuinely external state, not
     // something derivable during render.
@@ -129,7 +145,7 @@ export default function WebviewDemoPage() {
         {accounts && (
           <AccountList
             accounts={accounts.bankAccounts}
-            selectedToken={selectedToken}
+            selectedToken={effectiveSelectedToken}
             onSelect={setSelectedToken}
           />
         )}
@@ -141,7 +157,11 @@ export default function WebviewDemoPage() {
       {customerId && (
         <section className="card">
           <h2>Delegated payout</h2>
-          <PayoutForm customerId={customerId} accountToken={selectedToken} />
+          <PayoutForm
+            key={customerId}
+            customerId={customerId}
+            accountToken={effectiveSelectedToken}
+          />
         </section>
       )}
     </main>
