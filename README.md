@@ -2,22 +2,42 @@
 
 Reference implementation of Coinflow's [Bank Authentication UI](https://docs.coinflow.cash/guides/payouts/implementation-methods/bank-authentication-ui):
 link a bank account, list it back via the withdrawer API, and send a
-delegated payout to it — shown three ways:
+delegated payout to it.
 
-1. **`/iframe`** — the standard web pattern: bank auth embedded in an
-   `<iframe>` on a normal page.
-2. **`/webview`** — the page a native app's `WKWebView` / `react-native-webview`
-   would load directly (full-page nav, native bridge messaging), plus a
-   warning about why OAuth banks often refuse to complete inside an embedded
-   webview.
-3. **`/mobile`** — a QR code to the mobile-web preview, and the real fix: a
-   native iOS app (`ios-app/`) that opens bank auth in the system browser via
-   `ASWebAuthenticationSession`, which OAuth banks are fine with.
+1. **`/link`** — one web integration that adapts to the device: desktop
+   browsers get the hosted bank-auth UI embedded in an `<iframe>`; mobile
+   browsers get a full-page redirect instead. Same URL, same code, the
+   behavior just switches based on real device detection.
+2. **`/mobile`** — a QR code to that same page (proving the mobile-redirect
+   behavior on a real phone browser), plus a native iOS app (`ios-app/`) that
+   opens bank auth in the system browser via `ASWebAuthenticationSession` —
+   the actual fix for native apps whose embedded webview would otherwise
+   break OAuth bank logins.
 
 **This repo is sandbox-only, on purpose.** There's no prod URL or prod toggle
 anywhere in the code — see `src/lib/coinflow.ts`. Every payout is hard-capped
 at **$3.00**, enforced in both the UI and the `/api/payout` route, so this is
 safe to fork and click around in.
+
+## A note on terminology
+
+"WebView" (`WKWebView` on iOS, `android.webkit.WebView` on Android) means a
+**native app** embedding a stripped-down web engine inside its own UI — it
+has nothing to do with mobile *browsers*. Safari or Chrome on a phone is a
+full browser, same category as desktop, and OAuth works fine there. The two
+real reasons `/link` treats mobile differently from desktop are unrelated to
+"webviews":
+
+- Bank OAuth login pages refuse to be framed at all (universal, not
+  mobile-specific), so the actual bank login always has to escape any
+  iframe via a popup or top-level redirect.
+- Mobile browsers are more prone to popup-blocking and awkward small-viewport
+  UX when that escape happens, so a full-page redirect is just more reliable
+  there than dealing with a popup.
+
+The actual "OAuth breaks inside a webview" problem is a **native-app-only**
+issue, which is what the iOS app under `ios-app/` exists to fix — see its
+[README](ios-app/README.md) for how `ASWebAuthenticationSession` sidesteps it.
 
 ## How the pieces fit together
 
@@ -46,14 +66,15 @@ cp .env.example .env.local   # then fill in COINFLOW_SANDBOX_API_KEY
 npm run dev
 ```
 
-Open `http://localhost:3000` (or whatever port you choose) and pick one of
-the three flows from the home page. Each flow generates its own test
-`customerId` (stored in `localStorage`) the first time you load it — use
-"reset test user" to start over with a fresh identity.
+Open `http://localhost:3000` and pick a flow from the home page. Each flow
+generates its own test `customerId` (stored in `localStorage`) the first
+time you load it — use "reset test user" to start over with a fresh
+identity.
 
 To actually link a bank account, sandbox uses Plaid's sandbox mode: pick any
 institution and log in with Plaid's test credentials (`user_good` /
-`pass_good`).
+`pass_good`). Sandbox is fully simulated — there's no path to a real bank
+account from it, by design.
 
 ## Native iOS app
 
@@ -61,13 +82,3 @@ See [`ios-app/README.md`](ios-app/README.md). It's a SwiftUI project defined
 via [XcodeGen](https://github.com/yonaskolb/XcodeGen)'s `project.yml` — run
 `xcodegen generate` to produce the `.xcodeproj`, then open it in Xcode,
 select your own Apple ID as the signing team, and run it on your iPhone.
-
-## Why three flows, not one
-
-The whole point of this repo is to make the mobile OAuth-bank problem
-concrete: banks that use Plaid's OAuth flow (most large US banks) will often
-silently fail or refuse to load inside an embedded in-app webview, the same
-way Google blocks its OAuth inside in-app browsers. `/webview` demonstrates
-that pattern (and its risk) directly; the iOS app demonstrates the fix —
-handing the URL to the actual system browser via `ASWebAuthenticationSession`
-instead of an embedded webview.

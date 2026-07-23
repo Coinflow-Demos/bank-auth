@@ -7,9 +7,9 @@ export default async function MobilePage() {
   const host = headersList.get('host') ?? 'localhost:3000';
   const protocol = host.startsWith('localhost') ? 'http' : 'https';
   const origin = `${protocol}://${host}`;
-  const webviewUrl = `${origin}/webview`;
+  const linkUrl = `${origin}/link`;
 
-  const qrDataUrl = await QRCode.toDataURL(webviewUrl, {
+  const qrDataUrl = await QRCode.toDataURL(linkUrl, {
     margin: 1,
     width: 280,
   });
@@ -24,27 +24,29 @@ export default async function MobilePage() {
       <section className="card">
         <h2>Quick preview (mobile web)</h2>
         <p className="muted">
-          Scan this with your iPhone camera to open the embedded-webview demo
-          directly in mobile Safari. This proves out the UI and the linked-
-          accounts / payout flow, but it&apos;s still a regular browser tab —
-          not a real app webview or the native system-browser flow.
+          Scan this with your iPhone camera to open the same adaptive web
+          integration in mobile Safari — it&apos;ll detect the device and
+          switch to the full-page redirect automatically. Useful for proving
+          out the UI and the linked-accounts / payout flow, but it&apos;s a
+          real mobile browser tab, not a native app — for that, see below.
         </p>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qrDataUrl}
-          alt="QR code linking to the mobile webview demo"
+          alt="QR code linking to the web integration"
           width={280}
           height={280}
         />
-        <p className="muted small">{webviewUrl}</p>
+        <p className="muted small">{linkUrl}</p>
       </section>
 
       <section className="card">
         <h2>The real thing: native iOS test app</h2>
         <p className="muted">
-          OAuth banks generally refuse to complete inside an embedded
-          webview. The correct mobile pattern is to open the bank-auth URL in
-          the system browser via{' '}
+          OAuth banks generally refuse to complete inside a native app&apos;s
+          embedded webview (a restriction on native apps specifically, not
+          on mobile browsers). The correct pattern for a native app is to
+          open the bank-auth URL in the system browser via{' '}
           <code>ASWebAuthenticationSession</code>, which shares Safari&apos;s
           session and calls back into the app through a callback URL scheme
           when linking finishes. That can&apos;t be installed by scanning a

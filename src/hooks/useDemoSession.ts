@@ -13,11 +13,10 @@ function getOrCreateCustomerId(storageKey: string): string {
 
 /**
  * Owns the "who is this demo user" identity for one of the flows, plus the
- * Coinflow session key scoped to them. Each flow (iframe / webview) gets its
- * own storage namespace so testing one doesn't clobber the other's linked
- * bank account.
+ * Coinflow session key scoped to them. Each flow gets its own storage
+ * namespace so testing one doesn't clobber another's linked bank account.
  */
-export function useDemoSession(namespace: 'iframe' | 'webview') {
+export function useDemoSession(namespace: 'link') {
   const storageKey = `bank-auth-demo:${namespace}:customerId`;
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [sessionKey, setSessionKey] = useState<string | null>(null);

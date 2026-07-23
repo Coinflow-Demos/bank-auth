@@ -5,33 +5,43 @@ import Link from 'next/link';
 import {useDemoSession} from '@/hooks/useDemoSession';
 import {useWithdrawerAccounts} from '@/hooks/useWithdrawerAccounts';
 import {useAccountLinkedListener} from '@/hooks/useAccountLinkedListener';
+import {isMobileDevice} from '@/lib/device';
 import {AccountList} from '@/components/AccountList';
 import {PayoutForm} from '@/components/PayoutForm';
 
-export default function IframeDemoPage() {
+export default function LinkPage() {
   const {customerId, sessionKey, loading, error, resetCustomerId} =
-    useDemoSession('iframe');
-  const {
-    accounts,
-    loading: accountsLoading,
-    refetch,
-  } = useWithdrawerAccounts(sessionKey);
+    useDemoSession('link');
+  const {accounts, loading: accountsLoading, refetch} =
+    useWithdrawerAccounts(sessionKey);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const [justLinked, setJustLinked] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Reads navigator/location on mount — genuinely external, not derivable
+    // during render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMobile(isMobileDevice());
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('linked') === '1') {
+      setJustLinked(true);
+      refetch();
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // A fresh customerId (via "reset test user") means the previous selection
-  // and success banner no longer refer to anything real. Not derivable
-  // during render — it's resetting UI state in response to an identity
-  // change, so an effect (rather than a key-remount, which would also nuke
-  // the session-key fetch above) is the right tool here.
+  // and success banner no longer refer to anything real.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedToken(null);
     setJustLinked(false);
   }, [customerId]);
 
-  // Skip the extra click when there's exactly one account — computed at
-  // render time instead of an effect, so there's nothing to reset later.
+  // Skip the extra click when there's exactly one account to pick from.
   const effectiveSelectedToken =
     selectedToken ??
     (accounts?.bankAccounts.length === 1 ? accounts.bankAccounts[0].token : null);
@@ -43,32 +53,44 @@ export default function IframeDemoPage() {
   useAccountLinkedListener(handleLinked);
 
   const bankAuthUrl = useMemo(() => {
-    if (!sessionKey) return null;
+    if (!sessionKey || isMobile === null) return null;
+    const bankAccountLinkRedirect = isMobile
+      ? `${window.location.origin}/link?linked=1`
+      : `${window.location.origin}/bank-callback`;
     const params = new URLSearchParams({
       sessionKey,
-      bankAccountLinkRedirect: `${window.location.origin}/bank-callback`,
+      bankAccountLinkRedirect,
       allowedWithdrawSpeeds: 'standard',
-      origins: JSON.stringify([window.location.origin]),
+      ...(isMobile ? {} : {origins: JSON.stringify([window.location.origin])}),
     });
     return `https://sandbox.coinflow.cash/solana/withdraw/predictionmarketmoon?${params.toString()}`;
-  }, [sessionKey]);
+  }, [sessionKey, isMobile]);
 
   return (
     <main className="page">
       <p className="breadcrumb">
         <Link href="/">← back</Link>
       </p>
-      <h1>Web: iframe embed</h1>
+      <h1>Link a bank account</h1>
       <p className="muted">
-        This is the standard web pattern from Coinflow&apos;s{' '}
+        One integration, adapted to the device: desktop browsers get
+        Coinflow&apos;s{' '}
         <a href="https://docs.coinflow.cash/guides/payouts/implementation-methods/bank-authentication-ui">
           Bank Authentication UI
         </a>{' '}
-        docs: embed the hosted withdraw/bank-auth URL in an iframe on a normal
-        webpage. Works well in a desktop or mobile browser because the whole
-        page (and the iframe) share the browser&apos;s real cookies/session —
-        OAuth banks connect fine.
+        embedded in an iframe. Mobile browsers get a full-page redirect
+        instead — bank OAuth login pages can&apos;t be framed at all (that&apos;s
+        universal, not mobile-specific), and mobile browsers are far more
+        prone to popup-blocking issues when that escape hatch kicks in, so a
+        full-page redirect is just the more reliable choice there.
       </p>
+
+      {isMobile !== null && (
+        <p className="sandbox-banner">
+          Detected: <strong>{isMobile ? 'mobile browser' : 'desktop browser'}</strong> →
+          using {isMobile ? 'full-page redirect' : 'iframe embed'}.
+        </p>
+      )}
 
       <section className="card">
         <div className="row-between">
@@ -80,15 +102,20 @@ export default function IframeDemoPage() {
 
         {loading && <p>Creating session key…</p>}
         {error && <p className="error">{error}</p>}
+        {justLinked && <p className="success">Account linked ✓</p>}
 
-        {bankAuthUrl && (
+        {bankAuthUrl && isMobile === false && (
           <iframe
             src={bankAuthUrl}
             className="bank-auth-iframe"
             allow="geolocation"
           />
         )}
-        {justLinked && <p className="success">Account linked message received ✓</p>}
+        {bankAuthUrl && isMobile === true && (
+          <a className="button-link" href={bankAuthUrl}>
+            Link a bank account
+          </a>
+        )}
       </section>
 
       <section className="card">
