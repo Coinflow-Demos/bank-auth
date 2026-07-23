@@ -1,5 +1,5 @@
 import {NextRequest, NextResponse} from 'next/server';
-import {CoinflowApiError, getCustomerWithAccounts} from '@/lib/coinflow';
+import {CoinflowApiError, getWithdrawerAccounts} from '@/lib/coinflow';
 
 export async function POST(request: NextRequest) {
   const {sessionKey} = (await request.json()) as {sessionKey?: string};
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const accounts = await getCustomerWithAccounts(sessionKey);
+    const accounts = await getWithdrawerAccounts(sessionKey);
     return NextResponse.json(accounts);
   } catch (error) {
     if (error instanceof CoinflowApiError) {

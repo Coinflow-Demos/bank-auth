@@ -92,15 +92,23 @@ export interface WithdrawerAccounts {
 }
 
 /**
- * GET /customer/v2/
- * Scoped by the customer's session key. Returns 412 until the customer has
- * completed bank auth (or made a purchase) at least once — we treat that as
- * "no withdrawer yet" rather than an error.
+ * GET /withdraw/
+ * Scoped by the session key's Withdrawer identity — NOT the same record as
+ * `/customer/v2/`. Coinflow keeps two entirely separate models: a
+ * "Customer" (checkout/pay-in accounts) and a "Withdrawer" (payout
+ * destinations, which is what the hosted bank-auth UI actually writes to).
+ * Calling the customer endpoint here would always show an empty account
+ * list even after a real, successful bank link.
+ *
+ * Returns 401 ("No withdrawer associated with wallet...") until this
+ * customerId has gone through bank auth at least once, and 451 if a
+ * withdrawer exists but hasn't finished identity verification yet — both
+ * treated as "no accounts to show" rather than hard errors.
  */
-export async function getCustomerWithAccounts(
+export async function getWithdrawerAccounts(
   sessionKey: string
 ): Promise<WithdrawerAccounts> {
-  const response = await fetch(`${COINFLOW_API_BASE}/customer/v2/`, {
+  const response = await fetch(`${COINFLOW_API_BASE}/withdraw/`, {
     method: 'GET',
     headers: {
       'x-coinflow-auth-session-key': sessionKey,
@@ -108,8 +116,11 @@ export async function getCustomerWithAccounts(
     cache: 'no-store',
   });
 
-  if (response.status === 412) {
+  if (response.status === 401) {
     return {hasWithdrawer: false, kycApproved: false, bankAccounts: []};
+  }
+  if (response.status === 451) {
+    return {hasWithdrawer: true, kycApproved: false, bankAccounts: []};
   }
 
   const body = await parseJsonSafely(response);
@@ -122,14 +133,16 @@ export async function getCustomerWithAccounts(
   }
 
   const parsed = body as {
-    customer: {bankAccounts?: BankAccountSummary[]} | null;
-    kycApproved?: boolean;
+    withdrawer: {
+      bankAccounts?: BankAccountSummary[];
+      verification?: {status?: string};
+    };
   };
 
   return {
-    hasWithdrawer: parsed.customer !== null,
-    kycApproved: Boolean(parsed.kycApproved),
-    bankAccounts: parsed.customer?.bankAccounts ?? [],
+    hasWithdrawer: true,
+    kycApproved: parsed.withdrawer?.verification?.status === 'approved',
+    bankAccounts: parsed.withdrawer?.bankAccounts ?? [],
   };
 }
 

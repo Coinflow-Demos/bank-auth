@@ -44,8 +44,10 @@ issue, which is what the iOS app under `ios-app/` exists to fix — see its
 ```
 Browser/App ──▶ our API routes ──▶ Coinflow sandbox API (merchant key, server-side only)
                      │
-                     └─ GET  /api/session-key   → POST /auth/session-key            (customer-scoped JWT)
-                        POST /api/withdrawer    → GET  /customer/v2/                (linked bank accounts)
+                     └─ GET  /api/session-key   → POST /auth/session-key            (wallet-scoped JWT)
+                        POST /api/withdrawer    → GET  /withdraw/                   (linked bank accounts — the
+                                                                                       Withdrawer record, NOT /customer/v2/,
+                                                                                       which is a different model entirely)
                         POST /api/payout        → POST /merchant/withdraws/payout/delegated
                         GET  /api/withdrawal/:id→ GET  /merchant/withdraws/:id       (status)
 
