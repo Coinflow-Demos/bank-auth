@@ -1,66 +1,48 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="page">
+      <h1>Coinflow Bank Auth Demo</h1>
+      <p className="muted">
+        Reference implementation of Coinflow&apos;s hosted bank-account
+        linking UI plus a delegated payout, shown three ways: embedded in an
+        iframe (web), loaded directly in a mobile app webview, and opened in
+        the system browser from a native iOS app.
+      </p>
+
+      <p className="sandbox-banner">
+        Sandbox only — merchant <code>predictionmarketmoon</code>. Every
+        payout in this repo is hard-capped at $3.00, client and server side.
+      </p>
+
+      <div className="home-grid">
+        <Link className="home-card" href="/iframe">
+          <h2>1. Web · iframe</h2>
+          <p className="muted">
+            Bank auth embedded in an iframe on a normal webpage, then link
+            accounts and send a capped payout.
           </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        </Link>
+
+        <Link className="home-card" href="/webview">
+          <h2>2. Mobile · webview</h2>
+          <p className="muted">
+            The same flow as a native app&apos;s embedded webview would see
+            it — full-page navigation, native bridge messaging, and a warning
+            about why OAuth banks often fail here.
+          </p>
+        </Link>
+
+        <Link className="home-card" href="/mobile">
+          <h2>3. Native app · scan to test</h2>
+          <p className="muted">
+            QR code to a quick mobile-web preview, plus the real fix: a
+            native iOS test app using <code>ASWebAuthenticationSession</code>{' '}
+            to open bank auth in the system browser.
+          </p>
+        </Link>
+      </div>
+    </main>
   );
 }

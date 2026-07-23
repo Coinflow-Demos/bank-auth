@@ -1,0 +1,32 @@
+name: BankAuthDemo
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: "" # Set your team in Xcode's Signing & Capabilities tab.
+targets:
+  BankAuthDemo:
+    type: application
+    platform: iOS
+    sources:
+      - path: BankAuthDemo
+    info:
+      path: BankAuthDemo/Info.plist
+      properties:
+        CFBundleDisplayName: Bank Auth Demo
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true # Dev-only: lets us hit http://localhost or a LAN IP. Tighten before shipping.
+        CFBundleURLTypes:
+          - CFBundleURLName: cash.coinflow.bankauthdemo
+            CFBundleURLSchemes:
+              - bankauthdemo
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.bankauthdemo
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
