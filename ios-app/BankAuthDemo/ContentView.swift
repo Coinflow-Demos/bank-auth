@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @AppStorage("apiBaseURL") private var apiBaseURL = "http://localhost:3100"
+    @AppStorage("apiBaseURL") private var apiBaseURL = "https://bank-auth.vercel.app"
     @AppStorage("customerId") private var customerId = "bank-auth-demo-\(UUID().uuidString)"
 
     @State private var sessionKey: String?
