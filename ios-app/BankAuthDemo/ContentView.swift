@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @AppStorage("apiBaseURL") private var apiBaseURL = "https://bank-auth.vercel.app"
-    @AppStorage("customerId") private var customerId = "bank-auth-demo-\(UUID().uuidString)"
+    @State private var customerId = Coinflow.generateCustomerId()
 
     @State private var sessionKey: String?
     @State private var accounts: WithdrawerAccounts?
@@ -18,84 +17,126 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Backend") {
-                    TextField("API base URL", text: $apiBaseURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Text("customerId: \(customerId)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    banner(
+                        "Sandbox only — merchant \(Coinflow.merchantId). Capped at $\(String(format: "%.2f", maxDollars)).",
+                        tint: .green
+                    )
 
-                Section("1. Bank auth (system browser)") {
-                    Button {
-                        Task { await startBankAuth() }
-                    } label: {
-                        Label("Link a bank account", systemImage: "building.columns")
-                    }
-                    .disabled(isBusy)
-                }
-
-                Section("2. Linked accounts (Get Withdrawer)") {
-                    if let accounts, accounts.bankAccounts.isEmpty {
-                        Text("No bank accounts linked yet.")
+                    card("1. Link a bank account") {
+                        Text("customerId: \(customerId)")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+
+                        Button {
+                            Task { await startBankAuth() }
+                        } label: {
+                            Label("Link a bank account", systemImage: "building.columns")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isBusy)
                     }
-                    ForEach(accounts?.bankAccounts ?? []) { account in
-                        HStack {
-                            Text("\(account.alias) •••• \(account.last4)")
-                            Spacer()
-                            if selectedToken == account.token {
-                                Image(systemName: "checkmark.circle.fill")
+
+                    card("2. Linked accounts (Get Withdrawer)") {
+                        if let accounts, accounts.bankAccounts.isEmpty {
+                            Text("No bank accounts linked yet.")
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(accounts?.bankAccounts ?? []) { account in
+                            HStack {
+                                Text("\(account.alias) •••• \(account.last4)")
+                                Spacer()
+                                if selectedToken == account.token {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedToken = account.token }
+                        }
+                        Button("Refresh") {
+                            Task { await refreshAccounts() }
+                        }
+                        .disabled(sessionKey == nil || isBusy)
+                    }
+
+                    card("3. Delegated payout (max $\(String(format: "%.2f", maxDollars)))") {
+                        TextField("Amount", text: $amountText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(.roundedBorder)
+                            .onChange(of: amountText) { _ in clampAmount() }
+
+                        Button("Send payout") {
+                            Task { await sendPayout() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(selectedToken == nil || isBusy)
+
+                        if let payoutResult {
+                            Divider()
+                            Text("Signature: \(payoutResult.signature)")
+                                .font(.caption)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Text("Effective speed: \(payoutResult.effectiveSpeed)")
+                                .font(.caption)
+                            Button("Check status") {
+                                Task { await checkStatus() }
+                            }
+                            if let statusText {
+                                Text("Status: \(statusText)")
+                                    .font(.caption)
                             }
                         }
-                        .contentShape(Rectangle())
-                        .onTapGesture { selectedToken = account.token }
                     }
-                    Button("Refresh") {
-                        Task { await refreshAccounts() }
-                    }
-                    .disabled(sessionKey == nil || isBusy)
-                }
 
-                Section("3. Delegated payout (max $\(maxDollars, specifier: "%.2f"))") {
-                    TextField("Amount", text: $amountText)
-                        .keyboardType(.decimalPad)
-                        .onChange(of: amountText) { _ in clampAmount() }
-                    Button("Send payout") {
-                        Task { await sendPayout() }
-                    }
-                    .disabled(selectedToken == nil || isBusy)
-
-                    if let payoutResult {
-                        Text("Signature: \(payoutResult.signature)")
-                            .font(.caption)
-                        Text("Effective speed: \(payoutResult.effectiveSpeed)")
-                            .font(.caption)
-                        Button("Check status") {
-                            Task { await checkStatus() }
-                        }
-                        if let statusText {
-                            Text("Status: \(statusText)")
-                        }
+                    if let errorMessage {
+                        banner(errorMessage, tint: .red)
                     }
                 }
-
-                if let errorMessage {
-                    Section {
-                        Text(errorMessage).foregroundStyle(.red)
-                    }
-                }
+                .padding()
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Bank Auth Demo")
             .overlay {
                 if isBusy {
                     ProgressView()
+                        .padding(24)
+                        .background(.thinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func card<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title).font(.headline)
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func banner(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.footnote)
+            .foregroundStyle(.primary)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(tint.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func clampAmount() {
@@ -106,7 +147,7 @@ struct ContentView: View {
     }
 
     private func client() -> APIClient? {
-        APIClient(baseURLString: apiBaseURL)
+        APIClient(baseURLString: Coinflow.apiBaseURL)
     }
 
     private func startBankAuth() async {
