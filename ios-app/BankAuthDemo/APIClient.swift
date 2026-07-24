@@ -18,10 +18,6 @@ struct PayoutResult: Codable {
     let effectiveSpeed: String
 }
 
-struct APIErrorBody: Codable {
-    let error: String
-}
-
 enum APIClientError: Error, LocalizedError {
     case server(String)
     case invalidURL
@@ -31,6 +27,35 @@ enum APIClientError: Error, LocalizedError {
         case .server(let message): return message
         case .invalidURL: return "Invalid API base URL"
         }
+    }
+}
+
+/// Pulls the underlying Coinflow error out of our own API route's
+/// `{error, details}` response — `details` is whatever Coinflow returned,
+/// shape varies (a string, or a nested `{message, details}` object), so
+/// this uses JSONSerialization instead of fighting Codable over it.
+private func describeErrorBody(_ data: Data) -> String? {
+    guard
+        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else { return nil }
+
+    let topLevel = json["error"] as? String
+    let details = json["details"]
+
+    let detailText: String?
+    if let string = details as? String {
+        detailText = string
+    } else if let dict = details as? [String: Any] {
+        detailText = (dict["details"] as? String) ?? (dict["message"] as? String)
+    } else {
+        detailText = nil
+    }
+
+    switch (topLevel, detailText) {
+    case let (top?, detail?) where top != detail: return "\(top): \(detail)"
+    case let (top?, _): return top
+    case let (_, detail?): return detail
+    default: return nil
     }
 }
 
@@ -61,10 +86,8 @@ struct APIClient {
     private static func checkResponse(_ response: URLResponse, data: Data) throws {
         guard let http = response as? HTTPURLResponse else { return }
         guard (200...299).contains(http.statusCode) else {
-            if let body = try? JSONDecoder().decode(APIErrorBody.self, from: data) {
-                throw APIClientError.server(body.error)
-            }
-            throw APIClientError.server("Request failed with status \(http.statusCode)")
+            let description = describeErrorBody(data) ?? "Request failed with status \(http.statusCode)"
+            throw APIClientError.server("\(description) (HTTP \(http.statusCode))")
         }
     }
 

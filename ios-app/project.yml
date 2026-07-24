@@ -24,6 +24,14 @@ targets:
           - UIInterfaceOrientationPortrait
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true # Dev-only: lets us hit http://localhost or a LAN IP. Tighten before shipping.
+        # Required on iOS 14+ for any connection to a private/LAN IP address
+        # (e.g. if you point apiBaseURL at a machine's 192.168.x.x while
+        # developing) - without this, iOS silently blocks the connection
+        # instead of prompting, which looks exactly like "no internet
+        # connection" to the app.
+        NSLocalNetworkUsageDescription: >-
+          This test app connects to a local development server on your
+          network while testing bank-auth locally.
         CFBundleURLTypes:
           - CFBundleURLName: cash.coinflow.bankauthdemo
             CFBundleURLSchemes:
