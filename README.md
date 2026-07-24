@@ -11,6 +11,24 @@ the code — see `src/lib/coinflow.ts`. Every payout is hard-capped at
 **$3.00**, enforced in the UI *and* the `/api/payout` route, so this is safe
 to fork and click around in.
 
+## Try it live
+
+No setup needed — **https://bank-auth.vercel.app** is deployed and pick a
+flow from the home page:
+
+- Desktop → the iframe flow, right there in your browser.
+- Mobile browser → open the same link on your phone; it auto-detects and
+  switches to the full-page redirect.
+- Prefer scanning instead of typing the URL on your phone? Visit
+  [`/mobile`](https://bank-auth.vercel.app/mobile) on desktop for a QR code
+  that opens the mobile flow directly.
+- Native iOS app → there's no public build to scan into (needs a real Apple
+  Developer account/TestFlight); see [Native iOS app](#native-ios-app) below
+  to build and run it from Xcode instead.
+
+Use Plaid's sandbox test credentials (`user_good` / `pass_good`) to actually
+link an account — see [Setup](#setup) for details.
+
 ## The three methods, explained simply
 
 All three ultimately do the same two things — open Coinflow's hosted
