@@ -23,11 +23,14 @@ that needs the merchant API key — the app itself never sees that key.
    **Team** to your own Apple ID (a free personal team is fine for running
    on your own device).
 5. The app defaults to the deployed instance at `https://bank-auth.vercel.app`
-   — no setup needed. If you're running the Next.js app locally instead
-   (`npm run dev`), change the "API base URL" field in the app itself: the
-   simulator can use `http://localhost:3100` directly, but a physical
-   iPhone needs your Mac's LAN IP (e.g. `http://192.168.1.23:3100`) since
-   `localhost` on the phone means the phone itself.
+   (`Coinflow.apiBaseURL` in `Coinflow.swift`) — no setup needed. If you're
+   running the Next.js app locally instead (`npm run dev`), edit that
+   constant and rebuild: the simulator can use `http://localhost:3100`
+   directly, but a physical iPhone needs your Mac's LAN IP (e.g.
+   `http://192.168.1.23:3100`) since `localhost` on the phone means the
+   phone itself — and either way you'll also need
+   `NSLocalNetworkUsageDescription` (already in `project.yml`) granted in
+   Settings the first time a physical device connects to a LAN address.
 6. Plug in your iPhone (or connect over Wi-Fi in Xcode's Devices window),
    select it as the run destination, and hit Run.
 

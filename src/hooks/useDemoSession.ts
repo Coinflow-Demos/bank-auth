@@ -76,12 +76,5 @@ export function useDemoSession() {
     fetchSessionKey(id);
   }, [fetchSessionKey]);
 
-  return {
-    customerId,
-    sessionKey,
-    loading,
-    error,
-    resetCustomerId,
-    refreshSessionKey: () => customerId && fetchSessionKey(customerId),
-  };
+  return {customerId, sessionKey, loading, error, resetCustomerId};
 }

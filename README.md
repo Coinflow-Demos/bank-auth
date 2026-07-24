@@ -128,7 +128,7 @@ every API call this repo makes.
 ```
 Browser/App ──▶ our API routes ──▶ Coinflow sandbox API (merchant key, server-side only)
                      │
-                     └─ GET  /api/session-key   → GET  /auth/session-key            (wallet-scoped JWT)
+                     └─ POST /api/session-key   → GET  /auth/session-key            (wallet-scoped JWT)
                         POST /api/withdrawer    → GET  /withdraw/                   (linked bank accounts — the
                                                                                        Withdrawer record, NOT /customer/v2/,
                                                                                        which is a different model entirely)
