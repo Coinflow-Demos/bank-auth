@@ -7,16 +7,10 @@
  * only when explicitly asked to, and treat that as a separate change.
  */
 
-export const COINFLOW_MERCHANT_ID = 'predictionmarketmoon';
+import type {BankAccountSummary, WithdrawerAccounts} from './types';
+import {MAX_PAYOUT_CENTS} from './constants';
 
 export const COINFLOW_API_BASE = 'https://api-sandbox.coinflow.cash/api';
-export const COINFLOW_HOSTED_BASE = 'https://sandbox.coinflow.cash';
-
-/**
- * Hard safety cap for this demo repo: nobody should ever be able to pay out
- * more than $3 through it, in any of the three flows.
- */
-export const MAX_PAYOUT_CENTS = 300;
 
 function getApiKey(): string {
   const key = process.env.COINFLOW_SANDBOX_API_KEY;
@@ -79,18 +73,6 @@ export async function getSessionKey(customerId: string): Promise<string> {
   return (body as {key: string}).key;
 }
 
-export interface BankAccountSummary {
-  token: string;
-  alias: string;
-  last4: string;
-}
-
-export interface WithdrawerAccounts {
-  hasWithdrawer: boolean;
-  kycApproved: boolean;
-  bankAccounts: BankAccountSummary[];
-}
-
 /**
  * GET /withdraw/
  * Scoped by the session key's Withdrawer identity — NOT the same record as
@@ -144,28 +126,6 @@ export async function getWithdrawerAccounts(
     kycApproved: parsed.withdrawer?.verification?.status === 'approved',
     bankAccounts: parsed.withdrawer?.bankAccounts ?? [],
   };
-}
-
-export function buildBankAuthUrl({
-  sessionKey,
-  bankAccountLinkRedirect,
-  origins,
-}: {
-  sessionKey: string;
-  bankAccountLinkRedirect: string;
-  origins?: string[];
-}): string {
-  const url = new URL(
-    `${COINFLOW_HOSTED_BASE}/solana/withdraw/${COINFLOW_MERCHANT_ID}`
-  );
-  url.searchParams.set('sessionKey', sessionKey);
-  url.searchParams.set('bankAccountLinkRedirect', bankAccountLinkRedirect);
-  // Bank accounts only — no debit card push-to-card option in this demo.
-  url.searchParams.set('allowedWithdrawSpeeds', 'standard');
-  if (origins?.length) {
-    url.searchParams.set('origins', JSON.stringify(origins));
-  }
-  return url.toString();
 }
 
 export interface DelegatedPayoutResult {

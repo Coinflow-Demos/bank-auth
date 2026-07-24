@@ -32,9 +32,8 @@ export default function Home() {
           <h2>2. Native app · scan to test</h2>
           <p className="muted">
             QR code to a mobile-web preview, plus the real native-app fix: an
-            iOS test app using <code>ASWebAuthenticationSession</code> to
-            open bank auth in the system browser instead of an embedded
-            webview.
+            iOS test app that hands off to the real Safari app instead of an
+            embedded webview.
           </p>
         </Link>
       </div>

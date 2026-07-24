@@ -1,8 +1,9 @@
 'use client';
 
 import {useState} from 'react';
+import {MAX_PAYOUT_CENTS} from '@/lib/constants';
 
-const MAX_DOLLARS = 3;
+const MAX_DOLLARS = MAX_PAYOUT_CENTS / 100;
 
 export function PayoutForm({
   customerId,

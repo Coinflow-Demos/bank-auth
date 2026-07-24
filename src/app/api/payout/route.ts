@@ -1,6 +1,7 @@
 import {randomUUID} from 'crypto';
 import {NextRequest, NextResponse} from 'next/server';
-import {CoinflowApiError, createDelegatedPayout, MAX_PAYOUT_CENTS} from '@/lib/coinflow';
+import {CoinflowApiError, createDelegatedPayout} from '@/lib/coinflow';
+import {MAX_PAYOUT_CENTS} from '@/lib/constants';
 
 export async function POST(request: NextRequest) {
   const {customerId, accountToken, amountCents} = (await request.json()) as {

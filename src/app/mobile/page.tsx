@@ -46,12 +46,13 @@ export default async function MobilePage() {
           OAuth banks generally refuse to complete inside a native app&apos;s
           embedded webview (a restriction on native apps specifically, not
           on mobile browsers). The correct pattern for a native app is to
-          open the bank-auth URL in the system browser via{' '}
-          <code>ASWebAuthenticationSession</code>, which shares Safari&apos;s
-          session and calls back into the app through a callback URL scheme
-          when linking finishes. That can&apos;t be installed by scanning a
-          QR code without an Apple Developer account (TestFlight or an
-          ad-hoc build) — instead, build and run it straight from Xcode:
+          hand off to the real system browser — <code>UIApplication.shared.open(url)</code>
+          {' '}on iOS, a genuine backgrounding hand-off to Safari, not an
+          in-app session — and pick things back up via a custom URL scheme
+          when Safari redirects back after linking finishes. That can&apos;t
+          be installed by scanning a QR code without an Apple Developer
+          account (TestFlight or an ad-hoc build) — instead, build and run
+          it straight from Xcode:
         </p>
         <ol>
           <li>

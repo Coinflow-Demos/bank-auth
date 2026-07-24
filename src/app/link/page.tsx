@@ -6,6 +6,7 @@ import {useDemoSession} from '@/hooks/useDemoSession';
 import {useWithdrawerAccounts} from '@/hooks/useWithdrawerAccounts';
 import {useAccountLinkedListener} from '@/hooks/useAccountLinkedListener';
 import {isMobileDevice} from '@/lib/device';
+import {buildBankAuthUrl} from '@/lib/bankAuthUrl';
 import {AccountList} from '@/components/AccountList';
 import {PayoutForm} from '@/components/PayoutForm';
 
@@ -59,13 +60,11 @@ export default function LinkPage() {
     const bankAccountLinkRedirect = isMobile
       ? `${window.location.origin}/link?linked=1&customerId=${encodeURIComponent(customerId)}`
       : `${window.location.origin}/bank-callback`;
-    const params = new URLSearchParams({
+    return buildBankAuthUrl({
       sessionKey,
       bankAccountLinkRedirect,
-      allowedWithdrawSpeeds: 'standard',
-      ...(isMobile ? {} : {origins: JSON.stringify([window.location.origin])}),
+      origins: isMobile ? undefined : [window.location.origin],
     });
-    return `https://sandbox.coinflow.cash/solana/withdraw/predictionmarketmoon?${params.toString()}`;
   }, [sessionKey, customerId, isMobile]);
 
   return (
