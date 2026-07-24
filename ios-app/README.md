@@ -1,9 +1,12 @@
 # Bank Auth Demo — iOS
 
 SwiftUI test app that links a bank account through Coinflow's hosted UI by
-opening it in the **system browser** (`ASWebAuthenticationSession`), not an
-embedded webview — that's the fix for OAuth banks that refuse to complete
-login inside an in-app webview.
+handing off to the **real system Safari app** (`UIApplication.shared.open`),
+not an embedded webview and not an in-app auth session — that's the fix for
+OAuth banks that refuse to complete login anywhere other than a genuine,
+fully-external browser context. This matches Coinflow's own documented
+guidance for mobile apps (see the React Native redirect example in their
+docs, which uses `Linking.openURL` — the RN equivalent of this).
 
 It talks to the Next.js app one level up (`../src/app/api/*`) for anything
 that needs the merchant API key — the app itself never sees that key.
@@ -32,10 +35,16 @@ that needs the merchant API key — the app itself never sees that key.
 
 1. **Link a bank account** — fetches a session key from `/api/session-key`,
    builds the same `sandbox.coinflow.cash/solana/withdraw/...` URL the web
-   app uses, and opens it via `ASWebAuthenticationSession` with the
-   `bankauthdemo://callback` redirect. Because this uses the real system
-   browser, it shares Safari's session/cookies — Plaid's OAuth bank flow
-   works the same way it would in mobile Safari itself.
+   app uses, and opens it with `UIApplication.shared.open(url)` — a real,
+   full hand-off to Safari (the app backgrounds; this is not a sheet or an
+   in-app session). Because it's genuinely Safari, it shares its real
+   session/cookies and OAuth bank flows work exactly as they would if you'd
+   typed the URL into mobile Safari yourself. `bankAccountLinkRedirect` is
+   set to `bankauthdemo://callback`; when Coinflow redirects there after
+   linking finishes, Safari shows a one-time **"Open in 'Bank Auth
+   Demo'?"** prompt (standard for custom URL schemes — a Universal Link
+   would skip this but requires hosting a verification file on a real
+   domain), and `.onOpenURL` in `ContentView` picks it back up.
 2. **Get Withdrawer** — calls `/api/withdrawer` to list bank accounts linked
    to that session, same as both web flows.
 3. **Delegated payout** — capped at $3.00 in the UI (matches the server-side

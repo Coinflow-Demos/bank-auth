@@ -6,7 +6,9 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    DEVELOPMENT_TEAM: "" # Set your team in Xcode's Signing & Capabilities tab.
+    DEVELOPMENT_TEAM: "NKVT43D4DD" # If you fork this, replace with YOUR OWN team ID
+    # (Xcode > Settings > Accounts, or Signing & Capabilities > Team) - this one is
+    # tied to a specific personal Apple ID and won't work for anyone else.
 targets:
   BankAuthDemo:
     type: application

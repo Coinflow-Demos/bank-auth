@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     @State private var customerId = Coinflow.generateCustomerId()
@@ -11,8 +12,8 @@ struct ContentView: View {
     @State private var statusText: String?
     @State private var errorMessage: String?
     @State private var isBusy = false
+    @State private var awaitingBankAuthReturn = false
 
-    private let bankAuthSession = BankAuthSession()
     private let maxDollars = Double(Coinflow.maxPayoutCents) / 100
 
     var body: some View {
@@ -111,6 +112,14 @@ struct ContentView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }
+            // Fires when iOS reopens the app via bankauthdemo://callback,
+            // i.e. Safari handing control back after bank auth finishes.
+            .onOpenURL { url in
+                guard url.scheme == Coinflow.callbackURLScheme,
+                      awaitingBankAuthReturn else { return }
+                awaitingBankAuthReturn = false
+                Task { await refreshAccounts() }
+            }
         }
     }
 
@@ -163,8 +172,18 @@ struct ContentView: View {
             let key = try await client.fetchSessionKey(customerId: customerId)
             sessionKey = key
             let authURL = Coinflow.bankAuthURL(sessionKey: key)
-            _ = try await bankAuthSession.start(url: authURL)
-            await refreshAccounts()
+            // Coinflow's own guidance for mobile apps (see the React Native
+            // redirect example in their docs): hand off to the real system
+            // browser rather than an in-app session — OAuth banks need the
+            // genuine, fully-external Safari context. iOS backgrounds this
+            // app; `.onOpenURL` picks things back up when Safari redirects
+            // to bankauthdemo://callback after linking finishes.
+            awaitingBankAuthReturn = true
+            let opened = await UIApplication.shared.open(authURL)
+            if !opened {
+                awaitingBankAuthReturn = false
+                errorMessage = "Could not open Safari"
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
